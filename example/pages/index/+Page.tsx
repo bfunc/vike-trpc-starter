@@ -1,10 +1,21 @@
+import Link from '$src/components/Link';
+
 export default function IndexPage() {
   return (
-    <div style={{ textAlign: 'center', paddingTop: 80 }}>
-      <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 16 }}>Starter App</h1>
-      <p style={{ color: '#555', marginBottom: 32 }}>
-        Start to add features by creating new files in the <code>src/features</code> directory. Check out the <code>README.md</code> for more details.  
-      </p>
-    </div>
+    <section className="home-shell">
+      <div className="home-card">
+        <p className="home-card__eyebrow">Starter template</p>
+        <h1>One working vertical slice, ready to extend.</h1>
+        <p>
+          The example app ships with a full Users CRUD feature backed by SQLite, tRPC, Zod, React Query,
+          and AG Grid Community.
+        </p>
+        <div className="home-card__actions">
+          <Link className="home-card__primary-link" href="/users">
+            Open Users workspace
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 }

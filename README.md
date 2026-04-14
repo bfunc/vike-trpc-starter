@@ -23,14 +23,44 @@ Use the specs in this repository to rebuild it end-to-end:
 
 ## Key Technology Choices
 
-| Concern | Choice | Why |
-|---|---|---|
-| Meta-framework | Vike + vike-react | File-system routing, SSR-capable, Fastify-friendly |
-| UI | React 19 + TypeScript | Industry standard |
-| Backend | Fastify + tRPC | Type-safe API with zero boilerplate |
-| Database | SQLite via better-sqlite3 | Zero-config, file-based, enterprise-safe for small-medium scale |
-| Data grid | AG Grid Community | Free, feature-rich, enterprise-familiar |
-| Validation | Zod | Runtime + compile-time type safety |
-| Server state | @tanstack/react-query | Caching, refetch, loading states |
-| Build | Vite 7 | Fast HMR, tree-shaking |
-| Styling | CSS Modules | Scoped styles, no extra runtime |
+| Concern        | Choice                    | Why                                                             |
+| -------------- | ------------------------- | --------------------------------------------------------------- |
+| Meta-framework | Vike + vike-react         | File-system routing, SSR-capable, Fastify-friendly              |
+| UI             | React 19 + TypeScript     | Industry standard                                               |
+| Backend        | Fastify + tRPC            | Type-safe API with zero boilerplate                             |
+| Database       | SQLite via better-sqlite3 | Zero-config, file-based, enterprise-safe for small-medium scale |
+| Data grid      | AG Grid Community         | Free, feature-rich, enterprise-familiar                         |
+| Validation     | Zod                       | Runtime + compile-time type safety                              |
+| Server state   | @tanstack/react-query     | Caching, refetch, loading states                                |
+| Build          | Vite 7                    | Fast HMR, tree-shaking                                          |
+| Styling        | CSS Modules               | Scoped styles, no extra runtime                                 |
+
+## Feature prompt example
+
+Build Users CRUD feature end-to-end in example folder
+
+- clean UX
+- use AG Grid community
+
+Constraints:
+
+Keep existing stack and architecture (Vike + Fastify + tRPC + React Query + SQLite + Zod).
+Recreate Users CRUD with list/create/update/delete and usable UI.
+Use strict TypeScript and pass typecheck.
+Preserve current code style and folder conventions.
+Errors must be visible to users for all failed mutations.
+Keep implementation readable and minimal; avoid unnecessary local state when built-in query/mutation state is sufficient.
+Do not introduce enterprise AG Grid packages.
+Do not add backend/frontend split; keep one-project flow.
+Acceptance:
+
+/users route exists and works.
+Users can be listed, created, edited, deleted.
+SQLite schema and data flow are wired correctly.
+Mutation failures display clear messages (no silent fail).
+npm run typecheck passes.
+Deliverables:
+
+Code changes only in this repo.
+Brief summary of what was implemented.
+Commands run for validation.
