@@ -23,6 +23,12 @@ Use the specs in this repository to rebuild it end-to-end:
 
 ## Key Technology Choices
 
+- Language: TypeScript
+- Runtime: Node.js + Browser
+- Infra: Vike (Fullstack from Vite)
+- Server: Fastify + tRPC + Zod
+- Client: React + React (Tanstack) Query
+
 | Concern        | Choice                    | Why                                                             |
 | -------------- | ------------------------- | --------------------------------------------------------------- |
 | Meta-framework | Vike + vike-react         | File-system routing, SSR-capable, Fastify-friendly              |

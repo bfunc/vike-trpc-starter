@@ -50,14 +50,42 @@ directly, no separate backend project needed
 
 > Smallest possible surface area for a full-stack TypeScript SPA that stays type-safe end-to-end.
 
-## Slide 4 — AI Closes the Loop with E2E Tests
+## Slide 4 - AI Closes the Loop with E2E Tests
 
 Two layers of AI self-validation, both living in the same repo:
 
 Because everything — server, client, types, tests — lives in the same project, AI can generate the e2e test from the same context it used to write the feature.
 
-One prompt:
+One prompt, gives you BE + FE + e2e tests automatically:
 
-> _"Write a Playwright test that creates a product and verifies it appears in the list."_
+> _"Write a feature that creates a product and verifies it appears in the list."_
 
 AI already knows the routes, the form fields, the expected response shape. It doesn't guess. It reads the types.
+
+## Slide 5 - Structure That Scales: Onion + Screaming
+
+**TypeScript is only as messy as your architecture allows.**
+
+#### Onion (Hexagonal) architecture
+
+The idea: your business logic doesn't know about HTTP, doesn't know about React, doesn't know about Postgres. It's pure functions in the center. Everything else (tRPC handlers, DB adapters, UI) is a layer around it.
+
+#### Screaming architecture
+
+The idea: folder structure screams what the app does:
+
+```
+features/
+  products/
+    product.schema.ts    ← Zod types, single source of truth
+    product.router.ts    ← tRPC handler, no business logic
+    product.usecase.ts   ← pure logic, no framework
+    ui/ProductList.tsx       ← component, calls tRPC
+
+```
+
+**Why AI performs better in this structure:**
+
+- One prompt scope = one feature folder
+- No hunting across repos, layers, or unrelated files
+- Generated code lands in the right place by default
