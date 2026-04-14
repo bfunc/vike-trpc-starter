@@ -7,7 +7,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <nav>
         <a href="/">Enterprise Starter</a>
-        <a href="/users">Users</a>
       </nav>
       <main>{children}</main>
     </QueryClientProvider>

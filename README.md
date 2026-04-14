@@ -8,7 +8,12 @@ These specs describe a **generic, opinionated starter template** — not related
 
 ## Scope
 
-The generated project ships with **one working feature**: a **Users management table** backed by SQLite, rendered with AG Grid Community.
+The `example/` app is currently in **exercise mode**: the Users feature was intentionally removed.
+
+Use the specs in this repository to rebuild it end-to-end:
+
+- `FEATURE-USERS.md` defines the exact Users requirements (DB schema, API, UI)
+- `AI-BUILD-PROMPT.md` provides a full scaffold/build prompt for an AI coding agent
 
 ## How to Use
 

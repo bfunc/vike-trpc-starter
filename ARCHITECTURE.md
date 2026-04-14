@@ -6,6 +6,7 @@
 - **Type:** Full-stack web application (SPA + API server, single process)
 - **Target use case:** Enterprise internal tools, admin panels, CRUD dashboards
 - **Language:** TypeScript (strict mode everywhere)
+- **Exercise mode note:** The runnable `example/` app may intentionally remove sample features (such as Users) so they can be rebuilt from specs.
 
 ---
 
