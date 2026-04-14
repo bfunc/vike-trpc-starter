@@ -49,3 +49,15 @@ directly, no separate backend project needed
 - Less code to write. Less code to maintain. Less for AI to get wrong.
 
 > Smallest possible surface area for a full-stack TypeScript SPA that stays type-safe end-to-end.
+
+## Slide 4 — AI Closes the Loop with E2E Tests
+
+Two layers of AI self-validation, both living in the same repo:
+
+Because everything — server, client, types, tests — lives in the same project, AI can generate the e2e test from the same context it used to write the feature.
+
+One prompt:
+
+> _"Write a Playwright test that creates a product and verifies it appears in the list."_
+
+AI already knows the routes, the form fields, the expected response shape. It doesn't guess. It reads the types.
