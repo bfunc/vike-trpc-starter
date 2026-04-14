@@ -1,18 +1,20 @@
 type Props = {
   title: string;
   message: string;
+  errorMessage?: string;
   confirmLabel?: string;
   isLoading: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
 
-export default function ConfirmModal({ title, message, confirmLabel = 'Confirm', isLoading, onConfirm, onCancel }: Props) {
+export default function ConfirmModal({ title, message, errorMessage, confirmLabel = 'Confirm', isLoading, onConfirm, onCancel }: Props) {
   return (
     <div style={styles.backdrop}>
       <div style={styles.modal}>
         <h2 style={styles.title}>{title}</h2>
         <p style={styles.message}>{message}</p>
+        {errorMessage ? <p style={styles.error}>{errorMessage}</p> : null}
         <div style={styles.actions}>
           <button style={styles.cancelBtn} onClick={onCancel} disabled={isLoading}>
             Cancel
@@ -37,6 +39,14 @@ const styles: Record<string, React.CSSProperties> = {
   },
   title: { fontSize: 18, fontWeight: 700, marginBottom: 12, color: '#1a1a1a' },
   message: { fontSize: 14, color: '#555', marginBottom: 24, lineHeight: 1.6 },
+  error: {
+    color: '#dc2626',
+    background: '#fef2f2',
+    padding: '8px 12px',
+    borderRadius: 6,
+    fontSize: 13,
+    marginBottom: 12
+  },
   actions: { display: 'flex', gap: 12, justifyContent: 'flex-end' },
   cancelBtn: {
     padding: '8px 20px', borderRadius: 6, border: '1px solid #d1d5db',

@@ -17,6 +17,7 @@ Read every section of this prompt carefully before writing any code. Follow all 
 ### GOAL
 
 Scaffold the complete `enterprise-starter` project with:
+
 - All configuration files
 - A SQLite database layer with migrations
 - A tRPC API with a `users` router
@@ -45,8 +46,8 @@ Do NOT generate placeholder files. Every file must be complete and functional.
     "better-sqlite3": "^12.6.0",
     "ag-grid-community": "^33.0.0",
     "ag-grid-react": "^33.0.0",
-    "@universal-middleware/core": "^0.4.16",
-    "@universal-middleware/fastify": "^0.4.16",
+    "@vikejs/fastify": "^0.2.4",
+    "fastify-raw-body": "^5.0.0",
     "dotenv": "^17.0.0"
   },
   "devDependencies": {
@@ -82,6 +83,13 @@ Do NOT generate placeholder files. Every file must be complete and functional.
 10. **kebab-case files, PascalCase components**: `users-queries.ts`, `UsersGrid.tsx`.
 11. **Verbatim module syntax**: Use `import type { Foo }` for type-only imports.
 12. **Path alias**: Configure `$src/` → project root in both `tsconfig.json` and `vite.config.ts`.
+13. **Server wiring**: Implement root `+server.ts` with `@vikejs/fastify`, register `/api/trpc` before Vike page handling.
+14. **Dev command**: Use `vike dev` (do not run a separate Fastify entry for dev).
+15. **Type unknown errors**: In server error handlers, narrow `unknown` before reading properties (e.g. `statusCode`, `message`).
+16. **tRPC options proxy usage**: With `createTRPCOptionsProxy`, use React Query with `queryOptions()` and `mutationOptions()`; do not call `trpc.<procedure>.useMutation(...)`.
+17. **No redundant error state**: Reuse TanStack Query mutation/query state (`isError`, `error`, `reset`) instead of mirroring the same error in extra local state.
+18. **Readable error mapping**: Keep JSX clean by deriving user-facing error messages in named variables/helpers; avoid long nested inline ternaries.
+19. **No silent mutation failures**: Every mutation (create, update, delete) must surface an error message to the user on failure. Never leave a failed mutation invisible — the user must always know what went wrong.
 
 ---
 
@@ -89,6 +97,7 @@ Do NOT generate placeholder files. Every file must be complete and functional.
 
 ```
 enterprise-starter/
+├── +server.ts
 ├── components/
 │   ├── Icons.tsx
 │   ├── Link.tsx
@@ -121,7 +130,6 @@ enterprise-starter/
 │   └── users/
 │       └── +Page.tsx
 ├── server/
-│   ├── entry.ts
 │   ├── di.ts
 │   ├── api.ts
 │   ├── trpc-handler.ts
@@ -193,17 +201,18 @@ CREATE TABLE IF NOT EXISTS _migrations (
 Define and export all of these:
 
 ```typescript
-UserSchema          // Full user row
-User                // z.infer<typeof UserSchema>
-UserCreateInputSchema
-UserCreateInput
-UserUpdateInputSchema
-UserUpdateInput
-UsersListQuerySchema
-UsersListQuery
+UserSchema; // Full user row
+User; // z.infer<typeof UserSchema>
+UserCreateInputSchema;
+UserCreateInput;
+UserUpdateInputSchema;
+UserUpdateInput;
+UsersListQuerySchema;
+UsersListQuery;
 ```
 
 **UserSchema fields:**
+
 - `id`: positive integer
 - `name`: string, min 1, max 200
 - `email`: valid email, max 320
@@ -242,11 +251,11 @@ Implement all these exported functions (each takes `db: Database` as first param
   - Return the count as number
 
 - **`findUserById(db, id: number): User | undefined`**
-  - SELECT * WHERE id = ?
+  - SELECT \* WHERE id = ?
   - Return `toRow(row)` or `undefined`
 
 - **`findUserByEmail(db, email: string): User | undefined`**
-  - SELECT * WHERE email = ?
+  - SELECT \* WHERE email = ?
   - Return `toRow(row)` or `undefined`
 
 - **`insertUser(db, input: UserCreateInput): User`**
@@ -285,16 +294,32 @@ Export `createUsersService({ db }: { db: Database.Database })` returning an obje
 ### TRPC ROUTER (`features/users/server/users-router.ts`)
 
 ```typescript
-import { z } from 'zod';
-import { createTRPCRouter, publicProcedure } from '$src/trpc/trpc';
-import { UserCreateInputSchema, UserUpdateInputSchema, UsersListQuerySchema } from '$src/features/users/schema';
+import { z } from "zod";
+import { createTRPCRouter, publicProcedure } from "$src/trpc/trpc";
+import {
+  UserCreateInputSchema,
+  UserUpdateInputSchema,
+  UsersListQuerySchema,
+} from "$src/features/users/schema";
 
 export const usersRouter = createTRPCRouter({
-  list: publicProcedure.input(UsersListQuerySchema).query(({ ctx, input }) => ctx.di.users.list(input)),
-  getById: publicProcedure.input(z.object({ id: z.number().int().positive() })).query(({ ctx, input }) => ctx.di.users.getById(input.id)),
-  create: publicProcedure.input(UserCreateInputSchema).mutation(({ ctx, input }) => ctx.di.users.create(input)),
-  update: publicProcedure.input(UserUpdateInputSchema).mutation(({ ctx, input }) => ctx.di.users.update(input)),
-  delete: publicProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ ctx, input }) => { ctx.di.users.delete(input.id); }),
+  list: publicProcedure
+    .input(UsersListQuerySchema)
+    .query(({ ctx, input }) => ctx.di.users.list(input)),
+  getById: publicProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .query(({ ctx, input }) => ctx.di.users.getById(input.id)),
+  create: publicProcedure
+    .input(UserCreateInputSchema)
+    .mutation(({ ctx, input }) => ctx.di.users.create(input)),
+  update: publicProcedure
+    .input(UserUpdateInputSchema)
+    .mutation(({ ctx, input }) => ctx.di.users.update(input)),
+  delete: publicProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(({ ctx, input }) => {
+      ctx.di.users.delete(input.id);
+    }),
 });
 ```
 
@@ -305,8 +330,8 @@ export const usersRouter = createTRPCRouter({
 #### `trpc/trpc.ts`
 
 ```typescript
-import { initTRPC } from '@trpc/server';
-import type { TrpcContext } from './context';
+import { initTRPC } from "@trpc/server";
+import type { TrpcContext } from "./context";
 
 const t = initTRPC.context<TrpcContext>().create({
   errorFormatter({ shape, error }) {
@@ -314,7 +339,8 @@ const t = initTRPC.context<TrpcContext>().create({
       ...shape,
       data: {
         ...shape.data,
-        zodError: error.cause instanceof ZodError ? error.cause.flatten() : null,
+        zodError:
+          error.cause instanceof ZodError ? error.cause.flatten() : null,
       },
     };
   },
@@ -329,8 +355,8 @@ Import `ZodError` from `zod`.
 #### `trpc/context.ts`
 
 ```typescript
-import type { Database } from 'better-sqlite3';
-import type { Di } from '$src/server/di';
+import type { Database } from "better-sqlite3";
+import type { Di } from "$src/server/di";
 
 export type TrpcContext = {
   db: Database;
@@ -341,8 +367,8 @@ export type TrpcContext = {
 #### `trpc/server.ts`
 
 ```typescript
-import { createTRPCRouter } from './trpc';
-import { usersRouter } from '$src/features/users/server/users-router';
+import { createTRPCRouter } from "./trpc";
+import { usersRouter } from "$src/features/users/server/users-router";
 
 export const appRouter = createTRPCRouter({
   users: usersRouter,
@@ -354,18 +380,21 @@ export type AppRouter = typeof appRouter;
 #### `trpc/client.ts`
 
 ```typescript
-import { createTRPCClient, httpBatchLink } from '@trpc/client';
-import { createTRPCOptionsProxy } from '@trpc/tanstack-react-query';
-import { QueryClient } from '@tanstack/react-query';
-import type { AppRouter } from './server';
+import { createTRPCClient, httpBatchLink } from "@trpc/client";
+import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
+import { QueryClient } from "@tanstack/react-query";
+import type { AppRouter } from "./server";
 
 export const queryClient = new QueryClient();
 
 const trpcClient = createTRPCClient<AppRouter>({
-  links: [httpBatchLink({ url: '/api/trpc' })],
+  links: [httpBatchLink({ url: "/api/trpc" })],
 });
 
-export const trpc = createTRPCOptionsProxy<AppRouter>({ client: trpcClient, queryClient });
+export const trpc = createTRPCOptionsProxy<AppRouter>({
+  client: trpcClient,
+  queryClient,
+});
 ```
 
 ---
@@ -373,8 +402,8 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({ client: trpcClient, quer
 ### DEPENDENCY INJECTION (`server/di.ts`)
 
 ```typescript
-import type { Database } from 'better-sqlite3';
-import { createUsersService } from '$src/features/users/server/users-service';
+import type { Database } from "better-sqlite3";
+import { createUsersService } from "$src/features/users/server/users-service";
 
 export type Di = ReturnType<typeof createDi>;
 
@@ -387,16 +416,15 @@ export function createDi(deps: { db: Database }) {
 
 ---
 
-### SERVER ENTRY (`server/entry.ts`)
+### SERVER ENTRY (`+server.ts`)
 
-Bootstrap Fastify:
+Bootstrap Fastify through Vike server integration:
 
-1. Import `Fastify`, `dotenv/config`, `getDb` from `$src/database/sqlite/db`, `createDi` from `$src/server/di`
-2. Register `http-error-handler` hook
-3. Register `GET /health` returning `{ status: 'ok', timestamp: new Date().toISOString() }`
-4. Register tRPC handler at `/api/trpc` (see `server/trpc-handler.ts`)
-5. Register Vike middleware (import from `vike/server`) — serves the SPA
-6. Listen on `process.env.PORT ?? 3000`
+1. Create Fastify app in root `+server.ts`
+2. Register `fastify-raw-body`
+3. Register error handler, `/health`, and tRPC routes (`/api/trpc`, `/api/trpc/*`) before Vike route handling
+4. Register Vike Fastify integration via `@vikejs/fastify`
+5. Export `{ fetch, prod }` server object for Vike
 
 #### `server/trpc-handler.ts`
 
@@ -407,6 +435,7 @@ Bootstrap Fastify:
 #### `server/helpers/http-error-handler.ts`
 
 Fastify `setErrorHandler` that:
+
 - Logs the error
 - Returns `{ error: message, statusCode }` JSON with the appropriate HTTP status code
 
@@ -417,7 +446,7 @@ Fastify `setErrorHandler` that:
 #### `pages/+config.ts`
 
 ```typescript
-import vikeReact from 'vike-react/config';
+import vikeReact from "vike-react/config";
 export default { extends: [vikeReact], ssr: false };
 ```
 
@@ -439,8 +468,8 @@ AG Grid CSS is imported directly in `UsersGrid.tsx`, not here.
 #### `pages/+Layout.tsx`
 
 ```tsx
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from '$src/trpc/client';
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "$src/trpc/client";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -462,8 +491,10 @@ Simple welcome page with a heading "Enterprise Starter" and a link to `/users`.
 #### `pages/users/+Page.tsx`
 
 ```tsx
-import UsersFeature from '$src/features/users/ui/UsersFeature';
-export default function UsersPage() { return <UsersFeature />; }
+import UsersFeature from "$src/features/users/ui/UsersFeature";
+export default function UsersPage() {
+  return <UsersFeature />;
+}
 ```
 
 #### `features/users/ui/UsersFeature.tsx`
@@ -481,31 +512,32 @@ This is the main orchestration component. It must:
    - `<UsersGrid users={data ?? []} onEdit={user => { setSelectedUser(user); setModalMode('edit'); }} onDelete={user => setDeleteTarget(user)} />`
    - `<UserFormModal>` (open when `modalMode !== null`)
    - `<ConfirmModal>` (open when `deleteTarget !== null`)
-6. On delete confirm: call `trpc.users.delete.useMutation` — on success call `refetchUsers()` and clear `deleteTarget`
+6. On delete confirm: use React Query `useMutation({ ...trpc.users.delete.mutationOptions(), onSuccess: ... })`
+7. For delete errors, prefer `deleteMutation.isError` + `deleteMutation.error` directly; use `deleteMutation.reset()` to clear stale errors when reopening/closing modal.
 
 #### `features/users/ui/UsersGrid.tsx`
 
 AG Grid Community grid component.
 
 ```typescript
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
-import { AgGridReact } from 'ag-grid-react';
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-alpine.css";
+import { AgGridReact } from "ag-grid-react";
 ```
 
 Props: `users: User[]`, `onEdit: (user: User) => void`, `onDelete: (user: User) => void`
 
 Column definitions:
 
-| field | headerName | Options |
-|---|---|---|
-| `name` | Name | `sortable: true, filter: true, flex: 2` |
-| `email` | Email | `sortable: true, filter: true, flex: 2` |
-| `role` | Role | `sortable: true, filter: true, flex: 1` |
+| field        | headerName | Options                                                              |
+| ------------ | ---------- | -------------------------------------------------------------------- |
+| `name`       | Name       | `sortable: true, filter: true, flex: 2`                              |
+| `email`      | Email      | `sortable: true, filter: true, flex: 2`                              |
+| `role`       | Role       | `sortable: true, filter: true, flex: 1`                              |
 | `department` | Department | `filter: true, flex: 1, valueFormatter: ({ value }) => value ?? '—'` |
-| `is_active` | Active | `flex: 1, valueFormatter: ({ value }) => value ? 'Yes' : 'No'` |
-| `created_at` | Created | `flex: 1, valueFormatter: ({ value }) => value.slice(0, 10)` |
-| Actions | — | `flex: 1, cellRenderer` — renders Edit + Delete buttons |
+| `is_active`  | Active     | `flex: 1, valueFormatter: ({ value }) => value ? 'Yes' : 'No'`       |
+| `created_at` | Created    | `flex: 1, valueFormatter: ({ value }) => value.slice(0, 10)`         |
+| Actions      | —          | `flex: 1, cellRenderer` — renders Edit + Delete buttons              |
 
 Grid container div: `className="ag-theme-alpine"`, `style={{ height: 600, width: '100%' }}`
 
@@ -516,6 +548,7 @@ Grid props: `rowData={users}`, `columnDefs={colDefs}`, `pagination={true}`, `pag
 Modal form rendered as an overlay (`position: fixed`, centered, with backdrop).
 
 Props:
+
 ```typescript
 {
   mode: 'create' | 'edit';
@@ -526,15 +559,16 @@ Props:
 ```
 
 Form fields (all using controlled `useState`):
+
 - `name` (text input, required)
 - `email` (email input, required)
 - `role` (select: admin / editor / viewer)
 - `department` (text input, optional)
 - `is_active` (checkbox)
 
-On submit in create mode: call `trpc.users.create.useMutation`. On success: call `onSuccess()` then `onClose()`.
+On submit in create mode: call mutate from `useMutation({ ...trpc.users.create.mutationOptions(), ...handlers })`. On success: call `onSuccess()` then `onClose()`.
 
-On submit in edit mode: call `trpc.users.update.useMutation` with `{ id: user.id, ...changedFields }`. On success: call `onSuccess()` then `onClose()`.
+On submit in edit mode: call mutate from `useMutation({ ...trpc.users.update.mutationOptions(), ...handlers })` with `{ id: user.id, ...changedFields }`. On success: call `onSuccess()` then `onClose()`.
 
 Display server error message below the form on mutation error.
 
@@ -560,6 +594,7 @@ Render as a simple modal overlay with title, message, Cancel button, and a Confi
 #### `shared/app-styles.css`
 
 Global styles:
+
 - CSS reset (`*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }`)
 - Base font: `font-family: system-ui, sans-serif; font-size: 16px; line-height: 1.5;`
 - Nav bar styling: horizontal flex, padding, background color, gap between links
@@ -605,20 +640,20 @@ export function nowIso(): string {
 #### `vite.config.ts`
 
 ```typescript
-import { defineConfig } from 'vite';
-import vike from 'vike/plugin';
-import react from '@vitejs/plugin-react';
-import path from 'path';
+import { defineConfig } from "vite";
+import vike from "vike/plugin";
+import react from "@vitejs/plugin-react";
+import path from "path";
 
 export default defineConfig({
   plugins: [vike(), react()],
   resolve: {
-    alias: { $src: path.resolve(__dirname, '.') },
+    alias: { $src: path.resolve(__dirname, ".") },
   },
   test: {
-    environment: 'jsdom',
-    setupFiles: ['./vitest.setup.ts'],
-    pool: 'forks',
+    environment: "jsdom",
+    setupFiles: ["./vitest.setup.ts"],
+    pool: "forks",
     poolOptions: { forks: { singleFork: true } },
   },
 });
@@ -638,8 +673,8 @@ export default defineConfig({
 #### `vitest.setup.ts`
 
 ```typescript
-import { cleanup } from '@testing-library/react';
-import { afterEach } from 'vitest';
+import { cleanup } from "@testing-library/react";
+import { afterEach } from "vitest";
 afterEach(cleanup);
 ```
 
@@ -687,6 +722,7 @@ If typecheck fails, fix all errors before reporting completion. Do NOT skip type
 ### SEED DATA (generate after core is working)
 
 Create `database/sqlite/seed.ts`:
+
 - Import `getDb`
 - Call `deleteUser` for all existing rows (truncate: `db.exec('DELETE FROM users')`)
 - Insert 20 sample users with:

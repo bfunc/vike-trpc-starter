@@ -24,12 +24,17 @@ export default function UsersFeature() {
   }
 
   const deleteMutation = useMutation({
-    ...trpc.users.delete.mutationOptions(queryClient),
+    ...trpc.users.delete.mutationOptions(),
     onSuccess: () => {
       refetchUsers();
       setDeleteTarget(null);
     }
   });
+
+  const deleteErrorMessage =
+    deleteMutation.isError
+      ? (deleteMutation.error instanceof Error ? deleteMutation.error.message : 'Failed to delete user')
+      : undefined;
 
   function handleEdit(user: User) {
     setSelectedUser(user);
@@ -37,6 +42,7 @@ export default function UsersFeature() {
   }
 
   function handleDelete(user: User) {
+    deleteMutation.reset();
     setDeleteTarget(user);
   }
 
@@ -83,10 +89,17 @@ export default function UsersFeature() {
         <ConfirmModal
           title="Delete User"
           message={`Are you sure you want to delete "${deleteTarget.name}"? This action cannot be undone.`}
+          errorMessage={deleteErrorMessage}
           confirmLabel="Delete"
           isLoading={deleteMutation.isPending}
-          onConfirm={() => deleteMutation.mutate({ id: deleteTarget.id })}
-          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => {
+            deleteMutation.reset();
+            deleteMutation.mutate({ id: deleteTarget.id });
+          }}
+          onCancel={() => {
+            deleteMutation.reset();
+            setDeleteTarget(null);
+          }}
         />
       )}
     </div>

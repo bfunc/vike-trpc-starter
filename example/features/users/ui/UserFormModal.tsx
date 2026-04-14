@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { trpc } from '$src/trpc/client';
 import type { User } from '$src/features/users/schema';
 
@@ -18,14 +18,14 @@ export default function UserFormModal({ mode, user, onClose, onSuccess }: Props)
   const [isActive, setIsActive] = useState(user?.is_active ?? true);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const queryClient = useQueryClient();
-
-  const createMutation = trpc.users.create.useMutation(queryClient, {
+  const createMutation = useMutation({
+    ...trpc.users.create.mutationOptions(),
     onSuccess: () => { onSuccess(); onClose(); },
     onError: err => setServerError(err.message)
   });
 
-  const updateMutation = trpc.users.update.useMutation(queryClient, {
+  const updateMutation = useMutation({
+    ...trpc.users.update.mutationOptions(),
     onSuccess: () => { onSuccess(); onClose(); },
     onError: err => setServerError(err.message)
   });

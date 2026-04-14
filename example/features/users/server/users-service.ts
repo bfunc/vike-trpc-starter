@@ -26,7 +26,7 @@ export function createUsersService({ db }: { db: Database }) {
 
     create(input: UserCreateInput): User {
       const existing = findUserByEmail(db, input.email);
-      if (existing) throw new TRPCError({ code: 'CONFLICT', message: 'Email already exists' });
+      if (existing) throw new TRPCError({ code: 'CONFLICT', message: 'Omg error!' });
       return insertUser(db, input);
     },
 
@@ -39,7 +39,7 @@ export function createUsersService({ db }: { db: Database }) {
         if (existing && existing.id !== input.id) {
           throw new TRPCError({ code: 'CONFLICT', message: 'Email already exists' });
         }
-      }
+      }  
       const updated = updateUser(db, input);
       if (!updated) throw new TRPCError({ code: 'NOT_FOUND', message: `User ${input.id} not found` });
       return updated;
